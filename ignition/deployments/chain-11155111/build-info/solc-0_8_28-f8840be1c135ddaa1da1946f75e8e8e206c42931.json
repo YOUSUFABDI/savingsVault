@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-f8840be1c135ddaa1da1946f75e8e8e206c42931",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.7.0"
+  },
+  "userSourceNameMap": {
+    "contracts/SavingsVault.sol": "project/contracts/SavingsVault.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "cancun",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/SavingsVault.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.19;\n\n/**\n * @title SavingsVault\n * @notice A DeFi savings vault where users deposit ETH, choose a lock period,\n * earn interest rewards, and can emergency-withdraw with a penalty.\n */\ncontract SavingsVault {\n\n    // ─────────────────────────────────────────────\n    //  CONSTANTS\n    // ─────────────────────────────────────────────\n\n    uint256 public constant LOCK_7_DAYS  = 7  days;\n    uint256 public constant LOCK_14_DAYS = 14 days;\n    uint256 public constant LOCK_30_DAYS = 30 days;\n\n    // Interest rates (basis points, 1% = 100)\n    uint256 public constant RATE_7_DAYS  = 300;  // 3%\n    uint256 public constant RATE_14_DAYS = 700;  // 7%\n    uint256 public constant RATE_30_DAYS = 1500; // 15%\n\n    // Early withdrawal penalty (basis points)\n    uint256 public constant EARLY_PENALTY = 1000; // 10%\n\n    // Basis points denominator\n    uint256 private constant BPS = 10_000;\n\n    // ─────────────────────────────────────────────\n    //  STATE\n    // ─────────────────────────────────────────────\n\n    address public owner;\n    uint256 public totalDeposits;\n    uint256 public collectedPenalties;\n\n    struct Deposit {\n        uint256 amount;         // ETH deposited (wei)\n        uint256 depositedAt;    // timestamp\n        uint256 lockDuration;   // seconds\n        uint256 interestRate;   // basis points\n        bool    withdrawn;      // already claimed?\n    }\n\n    // user => list of deposits (supports multiple deposits per user)\n    mapping(address => Deposit[]) public deposits;\n\n    // ─────────────────────────────────────────────\n    //  EVENTS\n    // ─────────────────────────────────────────────\n\n    event Deposited(address indexed user, uint256 amount, uint256 lockDuration, uint256 depositIndex);\n    event Withdrawn(address indexed user, uint256 principal, uint256 reward, uint256 depositIndex);\n    event EarlyWithdrawn(address indexed user, uint256 principal, uint256 penalty, uint256 depositIndex);\n    event PenaltiesWithdrawn(address indexed owner, uint256 amount);\n    event VaultFunded(address indexed funder, uint256 amount);\n\n    // ─────────────────────────────────────────────\n    //  MODIFIERS\n    // ─────────────────────────────────────────────\n\n    modifier onlyOwner() {\n        require(msg.sender == owner, \"Not owner\");\n        _;\n    }\n\n    // ─────────────────────────────────────────────\n    //  CONSTRUCTOR\n    // ─────────────────────────────────────────────\n\n    constructor() payable {\n        owner = msg.sender;\n    }\n\n    // ─────────────────────────────────────────────\n    //  CORE FUNCTIONS\n    // ─────────────────────────────────────────────\n\n    /**\n     * @notice Deposit ETH into the vault with a chosen lock period.\n     * @param lockDuration Must be LOCK_7_DAYS, LOCK_14_DAYS, or LOCK_30_DAYS.\n     */\n    function deposit(uint256 lockDuration) external payable {\n        require(msg.value > 0, \"Must deposit ETH\");\n        require(\n            lockDuration == LOCK_7_DAYS ||\n            lockDuration == LOCK_14_DAYS ||\n            lockDuration == LOCK_30_DAYS,\n            \"Invalid lock duration\"\n        );\n\n        uint256 rate = _getRate(lockDuration);\n\n        deposits[msg.sender].push(Deposit({\n            amount:       msg.value,\n            depositedAt:  block.timestamp,\n            lockDuration: lockDuration,\n            interestRate: rate,\n            withdrawn:    false\n        }));\n\n        totalDeposits += msg.value;\n\n        uint256 index = deposits[msg.sender].length - 1;\n        emit Deposited(msg.sender, msg.value, lockDuration, index);\n    }\n\n    /**\n     * @notice Withdraw after lock period has passed — receives principal + reward.\n     * @param depositIndex Index of the deposit to withdraw.\n     */\n    function withdraw(uint256 depositIndex) external {\n        Deposit storage dep = _getActiveDeposit(msg.sender, depositIndex);\n\n        require(\n            block.timestamp >= dep.depositedAt + dep.lockDuration,\n            \"Still locked\"\n        );\n\n        uint256 reward    = _calculateReward(dep.amount, dep.interestRate);\n        uint256 payout    = dep.amount + reward;\n\n        dep.withdrawn  = true;\n        totalDeposits -= dep.amount;\n\n        // FIXED: Replaced '—' with '-'\n        require(address(this).balance >= payout, \"Vault underfunded - contact owner\");\n\n        (bool ok, ) = msg.sender.call{value: payout}(\"\");\n        require(ok, \"Transfer failed\");\n\n        emit Withdrawn(msg.sender, dep.amount, reward, depositIndex);\n    }\n\n    /**\n     * @notice Emergency withdraw before lock ends — loses 10% as penalty.\n     * @param depositIndex Index of the deposit to withdraw early.\n     */\n    function earlyWithdraw(uint256 depositIndex) external {\n        Deposit storage dep = _getActiveDeposit(msg.sender, depositIndex);\n\n        // FIXED: Replaced '—' with '-'\n        require(\n            block.timestamp < dep.depositedAt + dep.lockDuration,\n            \"Lock already expired - use withdraw()\"\n        );\n\n        uint256 penalty = (dep.amount * EARLY_PENALTY) / BPS;\n        uint256 payout  = dep.amount - penalty;\n\n        dep.withdrawn      = true;\n        totalDeposits     -= dep.amount;\n        collectedPenalties += penalty;\n\n        (bool ok, ) = msg.sender.call{value: payout}(\"\");\n        require(ok, \"Transfer failed\");\n\n        emit EarlyWithdrawn(msg.sender, dep.amount, penalty, depositIndex);\n    }\n\n    // ─────────────────────────────────────────────\n    //  OWNER FUNCTIONS\n    // ─────────────────────────────────────────────\n\n    /**\n     * @notice Owner funds the vault so it can pay out rewards.\n     */\n    function fundVault() external payable onlyOwner {\n        emit VaultFunded(msg.sender, msg.value);\n    }\n\n    /**\n     * @notice Owner withdraws accumulated penalty fees.\n     */\n    function withdrawPenalties() external onlyOwner {\n        uint256 amount = collectedPenalties;\n        require(amount > 0, \"No penalties to withdraw\");\n        collectedPenalties = 0;\n        (bool ok, ) = owner.call{value: amount}(\"\");\n        require(ok, \"Transfer failed\");\n        emit PenaltiesWithdrawn(owner, amount);\n    }\n\n    // ─────────────────────────────────────────────\n    //  VIEW FUNCTIONS\n    // ─────────────────────────────────────────────\n\n    /// @notice Returns all deposits for a user.\n    function getDeposits(address user) external view returns (Deposit[] memory) {\n        return deposits[user];\n    }\n\n    /// @notice Returns the number of deposits for a user.\n    function getDepositCount(address user) external view returns (uint256) {\n        return deposits[user].length;\n    }\n\n    /// @notice Returns the unlock timestamp for a specific deposit.\n    function getUnlockTime(address user, uint256 depositIndex) external view returns (uint256) {\n        Deposit storage dep = deposits[user][depositIndex];\n        return dep.depositedAt + dep.lockDuration;\n    }\n\n    /// @notice Calculates expected reward for a deposit at maturity.\n    function getExpectedReward(address user, uint256 depositIndex) external view returns (uint256) {\n        Deposit storage dep = deposits[user][depositIndex];\n        return _calculateReward(dep.amount, dep.interestRate);\n    }\n\n    /// @notice Returns the vault's current ETH balance.\n    function vaultBalance() external view returns (uint256) {\n        return address(this).balance;\n    }\n\n    // ─────────────────────────────────────────────\n    //  INTERNAL HELPERS\n    // ─────────────────────────────────────────────\n\n    function _getRate(uint256 lockDuration) internal pure returns (uint256) {\n        if (lockDuration == LOCK_7_DAYS)  return RATE_7_DAYS;\n        if (lockDuration == LOCK_14_DAYS) return RATE_14_DAYS;\n        return RATE_30_DAYS;\n    }\n\n    function _calculateReward(uint256 amount, uint256 rateBps) internal pure returns (uint256) {\n        return (amount * rateBps) / BPS;\n    }\n\n    function _getActiveDeposit(address user, uint256 index) internal view returns (Deposit storage) {\n        require(index < deposits[user].length, \"Invalid deposit index\");\n        Deposit storage dep = deposits[user][index];\n        require(!dep.withdrawn, \"Already withdrawn\");\n        return dep;\n    }\n\n    // ─────────────────────────────────────────────\n    //  FALLBACK — accept direct ETH (for funding)\n    // ─────────────────────────────────────────────\n\n    receive() external payable {}\n}"
+      }
+    }
+  }
+}
