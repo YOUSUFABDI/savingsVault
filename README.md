@@ -1,6 +1,3 @@
-raw
-Readme · MD
-
 # SavingsVault
 
 A full-stack DeFi savings application built on Ethereum. Users can deposit ETH, choose a lock period, earn interest rewards, and withdraw — all powered by a smart contract on the Sepolia testnet.
@@ -36,5 +33,6 @@ SavingsVault lets users:
 
 ---
 
-Credits
+# Credits
+
 SavingsVault is built and maintained solely by YUSUF. Special thanks to the developers of the libraries and frameworks used in this project.
