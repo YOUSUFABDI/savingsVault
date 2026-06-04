@@ -1,10 +1,7 @@
 import { useState } from "react"
 import type { JsonRpcSigner } from "ethers"
 import type { DepositRecord } from "../contract"
-import {
-  earlyWithdrawDeposit,
-  withdrawDeposit,
-} from "../contract"
+import { earlyWithdrawDeposit, withdrawDeposit } from "../contract"
 import { Countdown } from "./Countdown"
 import {
   formatEth,
@@ -72,7 +69,9 @@ export function DepositsDashboard({
         <div>
           <h2 className="text-lg font-semibold text-white">My deposits</h2>
           <p className="mt-1 text-sm text-zinc-500">
-            {address ? "Your active and past vault positions" : "Connect wallet to view"}
+            {address
+              ? "Your active and past vault positions"
+              : "Connect wallet to view"}
           </p>
         </div>
         {address && (
@@ -92,7 +91,9 @@ export function DepositsDashboard({
           Connect MetaMask to see your deposits
         </p>
       ) : loading && deposits.length === 0 ? (
-        <p className="mt-8 text-center text-sm text-zinc-500">Loading deposits…</p>
+        <p className="mt-8 text-center text-sm text-zinc-500">
+          Loading deposits…
+        </p>
       ) : active.length === 0 && deposits.length === 0 ? (
         <p className="mt-8 text-center text-sm text-zinc-500">
           No deposits yet — make your first deposit above
@@ -155,7 +156,7 @@ export function DepositsDashboard({
                           type="button"
                           disabled={!signer || busy}
                           onClick={() => void handleEarlyWithdraw(dep.index)}
-                          className="rounded-lg border border-amber-600/50 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-400 hover:bg-amber-500/20 disabled:opacity-50"
+                          className="rounded-lg border border-amber-600/50 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-400 hover:bg-amber-500/20 disabled:opacity-50 cursor-pointer"
                         >
                           {busy ? "…" : "Early withdraw"}
                         </button>
@@ -177,11 +178,7 @@ export function DepositsDashboard({
   )
 }
 
-function StatusBadge({
-  status,
-}: {
-  status: "ready" | "locked" | "withdrawn"
-}) {
+function StatusBadge({ status }: { status: "ready" | "locked" | "withdrawn" }) {
   const styles = {
     ready: "bg-emerald-500/15 text-emerald-400 ring-emerald-500/30",
     locked: "bg-zinc-800 text-zinc-400 ring-zinc-700",
