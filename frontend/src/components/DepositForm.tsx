@@ -77,7 +77,7 @@ export function DepositForm({ signer, onSuccess, onError }: Props) {
                 type="button"
                 disabled={!signer || submitting}
                 onClick={() => setLockDuration(opt.lockDuration)}
-                className={`rounded-lg border px-3 py-3 text-left transition disabled:opacity-50 ${
+                className={`rounded-lg border px-3 py-3 text-left transition disabled:opacity-50 cursor-pointer ${
                   lockDuration === opt.lockDuration
                     ? "border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/50"
                     : "border-zinc-700 bg-zinc-950 hover:border-zinc-600"
@@ -103,13 +103,13 @@ export function DepositForm({ signer, onSuccess, onError }: Props) {
         <button
           type="submit"
           disabled={!signer || submitting}
-          className="w-full rounded-lg bg-emerald-500 py-3 font-medium text-zinc-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-lg bg-emerald-500 py-3 font-medium text-zinc-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
         >
           {!signer
             ? "Connect wallet to deposit"
             : submitting
-              ? "Confirm in MetaMask…"
-              : "Deposit"}
+            ? "Confirm in MetaMask…"
+            : "Deposit"}
         </button>
       </form>
     </section>

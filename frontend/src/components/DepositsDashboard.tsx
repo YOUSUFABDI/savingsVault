@@ -79,7 +79,7 @@ export function DepositsDashboard({
             type="button"
             onClick={onRefresh}
             disabled={loading}
-            className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 transition hover:border-zinc-600 hover:text-white disabled:opacity-50"
+            className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 transition hover:border-zinc-600 hover:text-white disabled:opacity-50 cursor-pointer"
           >
             Refresh
           </button>
