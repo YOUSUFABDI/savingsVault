@@ -1,8 +1,8 @@
-import hardhatToolboxMochaEthersPlugin from "@nomicfoundation/hardhat-toolbox-mocha-ethers"
-import { configVariable, defineConfig } from "hardhat/config"
+import "@nomicfoundation/hardhat-ethers"
+import "@nomicfoundation/hardhat-toolbox-mocha-ethers"
+import { configVariable } from "hardhat/config"
 
-export default defineConfig({
-  plugins: [hardhatToolboxMochaEthersPlugin],
+const config = {
   solidity: {
     profiles: {
       default: {
@@ -19,6 +19,10 @@ export default defineConfig({
       },
     },
   },
+  testing: {
+    testRunner: "mocha",
+    testFiles: ["test/**/*.test.ts"],
+  },
   networks: {
     sepolia: {
       type: "http",
@@ -27,4 +31,6 @@ export default defineConfig({
       accounts: [configVariable("PRIVATE_KEY")],
     },
   },
-})
+}
+
+export default config
