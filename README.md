@@ -2,7 +2,7 @@
 
 A full-stack DeFi savings application built on Ethereum. Users can deposit ETH, choose a lock period, earn interest rewards, and withdraw — all powered by a smart contract on the Sepolia testnet.
 
-> Built as a final project for the [Alchemy University Ethereum Bootcamp](https://university.alchemy.com/home) Just for learning purpose.
+> Built as a final project for the [Alchemy University Ethereum Bootcamp](https://university.alchemy.com/course/ethereum/) Just for learning purpose.
 
 ---
 
