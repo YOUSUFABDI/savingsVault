@@ -4,7 +4,18 @@ pragma solidity ^0.8.19;
 /**
  * @title SavingsVault
  * @notice A DeFi savings vault where users deposit ETH, choose a lock period,
- * earn interest rewards, and can emergency-withdraw with a penalty.
+ *         earn interest rewards, and can emergency-withdraw with a penalty.
+ *
+ * @dev ⚠️ EDUCATIONAL PROJECT ONLY
+ *      This smart contract was built as a final project for the
+ *      Alchemy University Ethereum Bootcamp. It is intended purely
+ *      for learning and demonstration purposes on the Sepolia testnet.
+ *
+ *      The fixed interest/reward mechanism in this contract may constitute
+ *      Riba under Islamic finance principles. The author does not endorse
+ *      deploying this contract with real funds. Any party who deploys or
+ *      modifies this contract for real financial use does so entirely at
+ *      their own responsibility.
  */
 contract SavingsVault {
 
